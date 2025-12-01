@@ -1,6 +1,6 @@
-# StrategyMap / FutureTree - Claude Code Project Guide
+# FutureTree - Claude Code Project Guide
 
-**Project Location:** `~/Developer/personal/strategymap-futuretree`
+**Project Location:** `~/Developer/personal/futuretree`
 **Type:** Strategic Intelligence Platform for Small Business Growth
 **Last Updated:** 2025-11-20
 
@@ -65,7 +65,7 @@ npm run format            # Prettier formatting
 ## Project Structure
 
 ```
-strategymap-futuretree/
+futuretree/
 ├── app/                   # Next.js App Router
 │   ├── (routes)/         # Application routes
 │   ├── api/              # API endpoints
@@ -113,7 +113,7 @@ Create `.env.local`:
 
 ```bash
 # Database
-DATABASE_URL="postgresql://user:pass@localhost:5432/strategymap"
+DATABASE_URL="postgresql://user:pass@localhost:5432/futuretree"
 
 # AI Service
 OPENAI_API_KEY="sk-proj_your_key"
@@ -290,8 +290,8 @@ tests/
 - [TanStack Query](https://tanstack.com/query/latest)
 
 ### Centralized
-- `~/Documents/claude-projects/changelogs/strategymap-futuretree-changelog.md`
-- `~/Documents/claude-projects/plans/strategymap-futuretree-plan.md`
+- `~/Documents/claude-projects/changelogs/futuretree-changelog.md`
+- `~/Documents/claude-projects/plans/futuretree-plan.md`
 
 ---
 
