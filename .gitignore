@@ -1,3 +1,26 @@
+# Dependencies
+node_modules/
+
+# Build output
+.next/
+out/
+dist/
+
+# macOS
+.DS_Store
+
+# Local env files
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+
+# PostHog wizard logs
+posthog-wizard-*.log
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
