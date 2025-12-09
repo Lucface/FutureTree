@@ -8,3 +8,4 @@ export {
   DataFreshnessBadge,
   ContradictionBadge,
 } from './ValidationBadge';
+export { WhatIfSimulator } from './WhatIfSimulator';
