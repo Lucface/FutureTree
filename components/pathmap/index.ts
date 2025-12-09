@@ -10,6 +10,8 @@ export {
 } from './ValidationBadge';
 export { WhatIfSimulator } from './WhatIfSimulator';
 export { ShareModal } from './ShareModal';
+export { OutcomeSurveyModal } from './OutcomeSurveyModal';
+export { SurveyPromptBanner, CompactSurveyPrompt } from './SurveyPromptBanner';
 
 // Mode components
 export { ModeToggle, OnboardingTooltips, PresenterControls } from './mode';

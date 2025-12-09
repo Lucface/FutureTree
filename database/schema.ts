@@ -42,6 +42,7 @@ export const strategicPaths = pgTable('strategic_paths', {
   confidenceLevel: varchar('confidence_level', { length: 20 }).default('low'), // 'high', 'medium', 'low'
   lastAggregated: timestamp('last_aggregated'),
   contradictionFlags: jsonb('contradiction_flags').$type<string[]>().default([]),
+  modelVersion: integer('model_version').default(1).notNull(), // Incremented when metrics are recalculated
 
   // Tree structure
   rootNodeId: uuid('root_node_id'), // Points to first decision_node
@@ -317,6 +318,188 @@ export const sharedPathLinksRelations = relations(sharedPathLinks, ({ one }) => 
 }));
 
 // ============================================================================
+// LEARNING LOOP: Outcome Tracking & Integration
+// ============================================================================
+
+/**
+ * Integration Webhooks (Audit Log)
+ * Tracks all webhook communications for debugging and retry logic
+ */
+export const integrationWebhooks = pgTable('integration_webhooks', {
+  id: uuid('id').primaryKey().defaultRandom(),
+
+  // Direction and service
+  direction: varchar('direction', { length: 20 }).notNull(), // 'outbound', 'inbound'
+  service: varchar('service', { length: 50 }).notNull(), // 'twentyfive', 'posthog', etc.
+  endpoint: varchar('endpoint', { length: 500 }).notNull(),
+
+  // Payload
+  payload: jsonb('payload').$type<Record<string, unknown>>().default({}),
+  responseCode: integer('response_code'),
+  responseBody: jsonb('response_body').$type<Record<string, unknown>>(),
+
+  // Status tracking
+  status: varchar('status', { length: 20 }).default('pending').notNull(), // 'pending', 'success', 'failed', 'retrying'
+  retryCount: integer('retry_count').default(0).notNull(),
+  maxRetries: integer('max_retries').default(3).notNull(),
+  nextRetryAt: timestamp('next_retry_at'),
+  lastError: text('last_error'),
+
+  // Metadata
+  correlationId: varchar('correlation_id', { length: 100 }), // For tracking related webhooks
+
+  // Timestamps
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  completedAt: timestamp('completed_at'),
+});
+
+/**
+ * TwentyFive Connections (CRM Integration)
+ * Stores encrypted credentials for TwentyFive CRM integration
+ */
+export const twentyfiveConnections = pgTable('twentyfive_connections', {
+  id: uuid('id').primaryKey().defaultRandom(),
+
+  // Link to client context
+  contextId: uuid('context_id').references(() => clientContexts.id, { onDelete: 'cascade' }),
+
+  // Credentials (encrypted at rest)
+  apiKey: text('api_key').notNull(), // Encrypted
+  webhookSecret: text('webhook_secret').notNull(), // For HMAC validation
+
+  // Connection status
+  isActive: boolean('is_active').default(true).notNull(),
+  lastSyncAt: timestamp('last_sync_at'),
+  lastSyncStatus: varchar('last_sync_status', { length: 20 }), // 'success', 'failed'
+
+  // Sync settings
+  syncEnabled: boolean('sync_enabled').default(true).notNull(),
+  syncFrequency: varchar('sync_frequency', { length: 20 }).default('realtime'), // 'realtime', 'daily', 'weekly'
+
+  // Timestamps
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+/**
+ * Outcome Surveys (Scheduled Follow-ups)
+ * Tracks scheduled and completed outcome surveys
+ */
+export const outcomeSurveys = pgTable('outcome_surveys', {
+  id: uuid('id').primaryKey().defaultRandom(),
+
+  // Links
+  explorationId: uuid('exploration_id').references(() => pathExplorations.id, { onDelete: 'cascade' }).notNull(),
+  outcomeId: uuid('outcome_id').references(() => pathOutcomes.id, { onDelete: 'cascade' }),
+
+  // Survey type and timing
+  surveyType: varchar('survey_type', { length: 20 }).notNull(), // '30day', '60day', '90day'
+  scheduledFor: timestamp('scheduled_for').notNull(),
+
+  // Status
+  status: varchar('status', { length: 20 }).default('scheduled').notNull(), // 'scheduled', 'sent', 'completed', 'expired', 'skipped'
+  sentAt: timestamp('sent_at'),
+  completedAt: timestamp('completed_at'),
+
+  // Delivery method
+  deliveryMethod: varchar('delivery_method', { length: 20 }).default('email'), // 'email', 'in_app', 'posthog'
+  recipientEmail: varchar('recipient_email', { length: 255 }),
+
+  // Responses (stored after completion)
+  responses: jsonb('responses').$type<{
+    hasStarted?: boolean;
+    progressPercent?: number;
+    actualSpend?: number;
+    outcome?: 'success' | 'partial' | 'failure' | 'pivoted' | 'abandoned';
+    lessons?: string;
+    wouldRecommend?: number; // 1-10 NPS
+    additionalNotes?: string;
+  }>(),
+
+  // Reminder tracking
+  reminderCount: integer('reminder_count').default(0).notNull(),
+  lastReminderAt: timestamp('last_reminder_at'),
+
+  // Timestamps
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+/**
+ * Metric Recalculation Jobs (Model Updates)
+ * Tracks when and why metrics were recalculated
+ */
+export const metricRecalculationJobs = pgTable('metric_recalculation_jobs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+
+  // Scope
+  pathId: uuid('path_id').references(() => strategicPaths.id, { onDelete: 'cascade' }),
+  nodeId: uuid('node_id').references(() => decisionNodes.id, { onDelete: 'cascade' }),
+  scope: varchar('scope', { length: 20 }).default('path').notNull(), // 'path', 'node', 'global'
+
+  // Trigger
+  triggerType: varchar('trigger_type', { length: 30 }).notNull(), // 'threshold_reached', 'scheduled', 'manual', 'outcome_received'
+  triggeredBy: varchar('triggered_by', { length: 100 }), // User ID or 'system'
+
+  // Processing
+  status: varchar('status', { length: 20 }).default('pending').notNull(), // 'pending', 'processing', 'completed', 'failed'
+  startedAt: timestamp('started_at'),
+  completedAt: timestamp('completed_at'),
+
+  // Results
+  outcomesProcessed: integer('outcomes_processed').default(0).notNull(),
+  metricsUpdated: jsonb('metrics_updated').$type<{
+    previousValues: Record<string, number>;
+    newValues: Record<string, number>;
+    changePercent: Record<string, number>;
+  }>(),
+
+  // Model versioning
+  previousModelVersion: integer('previous_model_version'),
+  newModelVersion: integer('new_model_version'),
+
+  // Error tracking
+  errorMessage: text('error_message'),
+
+  // Timestamps
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// ============================================================================
+// LEARNING LOOP RELATIONS
+// ============================================================================
+
+export const integrationWebhooksRelations = relations(integrationWebhooks, ({}) => ({}));
+
+export const twentyfiveConnectionsRelations = relations(twentyfiveConnections, ({ one }) => ({
+  context: one(clientContexts, {
+    fields: [twentyfiveConnections.contextId],
+    references: [clientContexts.id],
+  }),
+}));
+
+export const outcomeSurveysRelations = relations(outcomeSurveys, ({ one }) => ({
+  exploration: one(pathExplorations, {
+    fields: [outcomeSurveys.explorationId],
+    references: [pathExplorations.id],
+  }),
+  outcome: one(pathOutcomes, {
+    fields: [outcomeSurveys.outcomeId],
+    references: [pathOutcomes.id],
+  }),
+}));
+
+export const metricRecalculationJobsRelations = relations(metricRecalculationJobs, ({ one }) => ({
+  path: one(strategicPaths, {
+    fields: [metricRecalculationJobs.pathId],
+    references: [strategicPaths.id],
+  }),
+  node: one(decisionNodes, {
+    fields: [metricRecalculationJobs.nodeId],
+    references: [decisionNodes.id],
+  }),
+}));
+
+// ============================================================================
 // TYPE EXPORTS
 // ============================================================================
 
@@ -337,3 +520,15 @@ export type NewPathOutcome = typeof pathOutcomes.$inferInsert;
 
 export type SharedPathLink = typeof sharedPathLinks.$inferSelect;
 export type NewSharedPathLink = typeof sharedPathLinks.$inferInsert;
+
+export type IntegrationWebhook = typeof integrationWebhooks.$inferSelect;
+export type NewIntegrationWebhook = typeof integrationWebhooks.$inferInsert;
+
+export type TwentyfiveConnection = typeof twentyfiveConnections.$inferSelect;
+export type NewTwentyfiveConnection = typeof twentyfiveConnections.$inferInsert;
+
+export type OutcomeSurvey = typeof outcomeSurveys.$inferSelect;
+export type NewOutcomeSurvey = typeof outcomeSurveys.$inferInsert;
+
+export type MetricRecalculationJob = typeof metricRecalculationJobs.$inferSelect;
+export type NewMetricRecalculationJob = typeof metricRecalculationJobs.$inferInsert;

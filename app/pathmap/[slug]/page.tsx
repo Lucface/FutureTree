@@ -31,6 +31,7 @@ const mockPaths: Record<string, StrategicPath> = {
     sortOrder: 1,
     isActive: true,
     contradictionFlags: [],
+    modelVersion: 1,
     createdAt: new Date(),
     updatedAt: new Date(),
   },
