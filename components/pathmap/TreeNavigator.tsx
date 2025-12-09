@@ -14,9 +14,32 @@ import ReactFlow, {
 } from 'reactflow';
 import dagre from 'dagre';
 import { StrategicNode, type StrategicNodeData } from './StrategicNode';
-import type { DecisionNode } from '@/database/schema';
 import type { PathMapAnalytics } from '@/hooks/usePathMapAnalytics';
 import 'reactflow/dist/style.css';
+
+/**
+ * Minimal node type for TreeNavigator
+ * Compatible with both full DecisionNode from DB and shared view partial nodes
+ */
+export interface TreeNode {
+  id: string;
+  pathId: string;
+  parentId: string | null;
+  label: string;
+  description: string | null;
+  type: string;
+  disclosureLevel: number;
+  cost: string | null;
+  durationWeeks: number | null;
+  successProbability: string | null;
+  riskFactors: string[] | null;
+  confidenceLevel: string | null;
+  position: { x: number; y: number } | null;
+  children: string[] | null;
+  dependencies?: string[] | null;
+  mitigationStrategies?: string[] | null;
+  sortOrder?: number | null;
+}
 
 // Node dimensions for layout calculation
 const NODE_WIDTH = 240;
@@ -70,24 +93,49 @@ const fitViewOptions: FitViewOptions = {
 };
 
 interface TreeNavigatorProps {
-  nodes: DecisionNode[];
+  /** Path ID for context */
+  pathId?: string;
+  /** Decision nodes to display */
+  nodes: TreeNode[];
+  /** Root node ID (defaults to first node without parent) */
+  rootNodeId?: string;
+  /** Current disclosure level (1-3) */
   disclosureLevel?: 1 | 2 | 3;
-  onNodeSelect?: (node: DecisionNode) => void;
+  /** Initially expanded node IDs (for shared views) */
+  initialExpandedNodeIds?: string[];
+  /** Initially selected node ID (for shared views) */
+  initialSelectedNodeId?: string;
+  /** Read-only mode (for shared views) */
+  isReadOnly?: boolean;
+  /** Callback when node is selected */
+  onNodeSelect?: (node: TreeNode) => void;
+  /** Analytics tracker */
   analytics?: PathMapAnalytics;
+  /** Additional CSS class */
   className?: string;
 }
 
 export function TreeNavigator({
+  pathId,
   nodes: dbNodes,
+  rootNodeId,
   disclosureLevel = 2,
+  initialExpandedNodeIds,
+  initialSelectedNodeId,
+  isReadOnly = false,
   onNodeSelect,
   analytics,
   className,
 }: TreeNavigatorProps) {
   // Track which nodes are expanded
-  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(
-    new Set(dbNodes.filter((n) => !n.parentId).map((n) => n.id))
-  );
+  // Use initialExpandedNodeIds if provided (for shared views), otherwise default to root nodes
+  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(() => {
+    if (initialExpandedNodeIds && initialExpandedNodeIds.length > 0) {
+      return new Set(initialExpandedNodeIds);
+    }
+    // Default: expand root nodes
+    return new Set(dbNodes.filter((n) => !n.parentId).map((n) => n.id));
+  });
 
   // Calculate node depth
   const getNodeDepth = useCallback(

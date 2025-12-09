@@ -212,6 +212,42 @@ export const pathOutcomes = pgTable('path_outcomes', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
+/**
+ * Shared Path Links (Sharing)
+ * Shareable links to specific path explorations with state preservation
+ */
+export const sharedPathLinks = pgTable('shared_path_links', {
+  id: uuid('id').primaryKey().defaultRandom(),
+
+  // References
+  pathId: uuid('path_id').references(() => strategicPaths.id, { onDelete: 'cascade' }).notNull(),
+  explorationId: uuid('exploration_id').references(() => pathExplorations.id, { onDelete: 'set null' }),
+
+  // Link identity
+  slug: varchar('slug', { length: 12 }).notNull().unique(), // nanoid
+
+  // Preserved state
+  state: jsonb('state').$type<{
+    disclosureLevel: 1 | 2 | 3;
+    expandedNodeIds: string[];
+    selectedNodeId?: string;
+    notes?: string;
+  }>().notNull(),
+
+  // Access control
+  expiresAt: timestamp('expires_at').notNull(),
+  maxViews: integer('max_views'),
+  viewCount: integer('view_count').default(0).notNull(),
+  password: varchar('password', { length: 255 }), // bcrypt hash
+
+  // Metadata
+  createdBy: varchar('created_by', { length: 100 }), // session ID or user ID
+  title: varchar('title', { length: 200 }),
+
+  // Timestamps
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 // ============================================================================
 // RELATIONS
 // ============================================================================
@@ -220,6 +256,7 @@ export const strategicPathsRelations = relations(strategicPaths, ({ many, one })
   nodes: many(decisionNodes),
   explorations: many(pathExplorations),
   outcomes: many(pathOutcomes),
+  sharedLinks: many(sharedPathLinks),
   rootNode: one(decisionNodes, {
     fields: [strategicPaths.rootNodeId],
     references: [decisionNodes.id],
@@ -268,6 +305,17 @@ export const pathOutcomesRelations = relations(pathOutcomes, ({ one }) => ({
   }),
 }));
 
+export const sharedPathLinksRelations = relations(sharedPathLinks, ({ one }) => ({
+  path: one(strategicPaths, {
+    fields: [sharedPathLinks.pathId],
+    references: [strategicPaths.id],
+  }),
+  exploration: one(pathExplorations, {
+    fields: [sharedPathLinks.explorationId],
+    references: [pathExplorations.id],
+  }),
+}));
+
 // ============================================================================
 // TYPE EXPORTS
 // ============================================================================
@@ -286,3 +334,6 @@ export type NewPathExploration = typeof pathExplorations.$inferInsert;
 
 export type PathOutcome = typeof pathOutcomes.$inferSelect;
 export type NewPathOutcome = typeof pathOutcomes.$inferInsert;
+
+export type SharedPathLink = typeof sharedPathLinks.$inferSelect;
+export type NewSharedPathLink = typeof sharedPathLinks.$inferInsert;

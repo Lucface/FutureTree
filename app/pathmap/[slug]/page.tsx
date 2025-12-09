@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Layers } from 'lucide-react';
-import { TreeNavigator, EvidencePanel } from '@/components/pathmap';
+import { TreeNavigator, EvidencePanel, type TreeNode } from '@/components/pathmap';
 import { usePathMapAnalytics } from '@/hooks/usePathMapAnalytics';
 import type { DecisionNode, StrategicPath } from '@/database/schema';
 
@@ -241,7 +241,11 @@ export default function PathTreePage({ params }: PageProps) {
 
   // Track node selection for evidence panel
   const handleNodeSelect = useCallback(
-    (node: DecisionNode) => {
+    (treeNode: TreeNode) => {
+      // Find the full DecisionNode from our nodes array
+      const node = nodes.find((n) => n.id === treeNode.id);
+      if (!node) return;
+
       evidenceOpenTime.current = Date.now();
 
       // Determine what evidence types are available
@@ -259,7 +263,7 @@ export default function PathTreePage({ params }: PageProps) {
 
       setSelectedNode(node);
     },
-    [analytics]
+    [analytics, nodes]
   );
 
   // Track evidence panel close
@@ -340,7 +344,7 @@ export default function PathTreePage({ params }: PageProps) {
       {/* Tree Navigator */}
       <div className="border rounded-lg bg-card">
         <TreeNavigator
-          nodes={nodes}
+          nodes={nodes as TreeNode[]}
           disclosureLevel={disclosureLevel}
           onNodeSelect={handleNodeSelect}
           analytics={analytics}
