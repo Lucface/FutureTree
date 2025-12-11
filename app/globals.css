@@ -1,4 +1,8 @@
 @tailwind base;
+
+@plugin "tailwindcss-animate";
+
+@custom-variant dark (&:is(.dark *));
 @tailwind components;
 @tailwind utilities;
 
@@ -56,5 +60,149 @@
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+/* FutureTree Premium Design System
+ * Visual Language: Linear + Notion + Figma + Apple
+ * - Clean, spacious, premium (Linear)
+ * - Thoughtful, warm, human (Notion)
+ * - Polished, interactive, creative (Figma)
+ * - Confident, minimal, impactful (Apple)
+ */
+
+:root {
+  --radius: 0.625rem;
+
+  /* Light Mode - Warm off-white, not pure white */
+  --background: 0 0% 98%;           /* #FAFAFA - warm off-white */
+  --foreground: 0 0% 9%;            /* Near black text */
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 9%;
+  --primary: 0 0% 9%;               /* Near black primary */
+  --primary-foreground: 0 0% 98%;
+  --secondary: 0 0% 96%;
+  --secondary-foreground: 0 0% 9%;
+  --muted: 0 0% 96%;
+  --muted-foreground: 0 0% 45%;
+  --accent: 0 0% 96%;
+  --accent-foreground: 0 0% 9%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 0 0% 90%;
+  --input: 0 0% 90%;
+  --ring: 0 0% 9%;
+
+  /* Chart colors */
+  --chart-1: 142 76% 36%;           /* Green - path.vertical */
+  --chart-2: 217 91% 60%;           /* Blue - path.content */
+  --chart-3: 263 70% 50%;           /* Purple - path.partnership */
+  --chart-4: 43 96% 56%;            /* Amber */
+  --chart-5: 0 84% 60%;             /* Red */
+
+  /* Strategic Path Colors */
+  --path-vertical: 142 76% 36%;     /* #10B981 */
+  --path-content: 217 91% 60%;      /* #3B82F6 */
+  --path-partnership: 263 70% 50%;  /* #8B5CF6 */
+
+  /* Sidebar */
+  --sidebar: 0 0% 98%;
+  --sidebar-foreground: 0 0% 9%;
+  --sidebar-primary: 0 0% 9%;
+  --sidebar-primary-foreground: 0 0% 98%;
+  --sidebar-accent: 0 0% 96%;
+  --sidebar-accent-foreground: 0 0% 9%;
+  --sidebar-border: 0 0% 90%;
+  --sidebar-ring: 0 0% 9%;
+}
+
+/* Dark Mode - WARM charcoal, NOT pure black
+ * Pure black (#000) feels harsh. Warm charcoal feels premium.
+ */
+.dark {
+  --background: 0 0% 6%;            /* #0F0F0F - warm charcoal */
+  --foreground: 0 0% 95%;
+  --card: 0 0% 9%;                  /* #171717 - surface */
+  --card-foreground: 0 0% 95%;
+  --popover: 0 0% 9%;
+  --popover-foreground: 0 0% 95%;
+  --primary: 0 0% 95%;
+  --primary-foreground: 0 0% 9%;
+  --secondary: 0 0% 12%;            /* #1F1F1F - elevated */
+  --secondary-foreground: 0 0% 95%;
+  --muted: 0 0% 15%;
+  --muted-foreground: 0 0% 60%;
+  --accent: 0 0% 12%;
+  --accent-foreground: 0 0% 95%;
+  --destructive: 0 62% 30%;
+  --destructive-foreground: 0 0% 95%;
+  --border: 0 0% 16%;               /* #2A2A2A - subtle borders */
+  --input: 0 0% 16%;
+  --ring: 0 0% 60%;
+
+  /* Chart colors - slightly brighter for dark mode */
+  --chart-1: 142 76% 46%;
+  --chart-2: 217 91% 65%;
+  --chart-3: 263 70% 60%;
+  --chart-4: 43 96% 56%;
+  --chart-5: 0 84% 60%;
+
+  /* Sidebar */
+  --sidebar: 0 0% 9%;
+  --sidebar-foreground: 0 0% 95%;
+  --sidebar-primary: 217 91% 60%;
+  --sidebar-primary-foreground: 0 0% 95%;
+  --sidebar-accent: 0 0% 12%;
+  --sidebar-accent-foreground: 0 0% 95%;
+  --sidebar-border: 0 0% 16%;
+  --sidebar-ring: 0 0% 40%;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
   }
 }
