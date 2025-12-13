@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams } from 'next/navigation';
+import Link from 'next/link';
 import { Lock, AlertCircle, Loader2, Clock, Eye, Share2 } from 'lucide-react';
 import { TreeNavigator, type TreeNode } from '@/components/pathmap';
 
@@ -44,7 +45,6 @@ export default function SharedPathPage() {
 
   const [status, setStatus] = useState<'loading' | 'password' | 'error' | 'success'>('loading');
   const [error, setError] = useState<string | null>(null);
-  const [requiresPassword, setRequiresPassword] = useState(false);
   const [password, setPassword] = useState('');
   const [pathData, setPathData] = useState<SharedPathData | null>(null);
   const [linkInfo, setLinkInfo] = useState<{
@@ -52,39 +52,8 @@ export default function SharedPathPage() {
     pathName: string;
   } | null>(null);
 
-  // Initial check for link validity
-  useEffect(() => {
-    const checkLink = async () => {
-      try {
-        const response = await fetch(`/api/pathmap/share?slug=${slug}`);
-        const data = await response.json();
-
-        if (!data.success) {
-          setError(data.message);
-          setStatus('error');
-          return;
-        }
-
-        setLinkInfo({
-          title: data.shareLink.title,
-          pathName: data.shareLink.pathName,
-        });
-
-        if (data.shareLink.requiresPassword) {
-          setRequiresPassword(true);
-          setStatus('password');
-        } else {
-          // No password required, access directly
-          await accessLink();
-        }
-      } catch {
-        setError('Failed to load share link');
-        setStatus('error');
-      }
-    };
-
-    checkLink();
-  }, [slug]);
+  // Use ref to track if access has been attempted to avoid infinite loops
+  const hasAttemptedAccess = useRef(false);
 
   const accessLink = useCallback(async (pwd?: string) => {
     try {
@@ -102,7 +71,6 @@ export default function SharedPathPage() {
 
       if (!data.success) {
         if (data.requiresPassword) {
-          setRequiresPassword(true);
           setStatus('password');
           return;
         }
@@ -118,6 +86,42 @@ export default function SharedPathPage() {
       setStatus('error');
     }
   }, [slug]);
+
+  // Initial check for link validity
+  useEffect(() => {
+    if (hasAttemptedAccess.current) return;
+
+    const checkLink = async () => {
+      try {
+        const response = await fetch(`/api/pathmap/share?slug=${slug}`);
+        const data = await response.json();
+
+        if (!data.success) {
+          setError(data.message);
+          setStatus('error');
+          return;
+        }
+
+        setLinkInfo({
+          title: data.shareLink.title,
+          pathName: data.shareLink.pathName,
+        });
+
+        if (data.shareLink.requiresPassword) {
+          setStatus('password');
+        } else {
+          // No password required, access directly
+          hasAttemptedAccess.current = true;
+          await accessLink();
+        }
+      } catch {
+        setError('Failed to load share link');
+        setStatus('error');
+      }
+    };
+
+    checkLink();
+  }, [slug, accessLink]);
 
   const handlePasswordSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
@@ -146,12 +150,12 @@ export default function SharedPathPage() {
           </div>
           <h1 className="text-xl font-semibold mb-2">Unable to Load</h1>
           <p className="text-muted-foreground">{error}</p>
-          <a
+          <Link
             href="/pathmap"
             className="inline-block mt-6 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
           >
             Go to PathMap
-          </a>
+          </Link>
         </div>
       </div>
     );
@@ -280,9 +284,9 @@ export default function SharedPathPage() {
           <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
             <p>
               Powered by{' '}
-              <a href="/pathmap" className="text-primary hover:underline">
+              <Link href="/pathmap" className="text-primary hover:underline">
                 FutureTree PathMap
-              </a>
+              </Link>
             </p>
           </div>
         </footer>

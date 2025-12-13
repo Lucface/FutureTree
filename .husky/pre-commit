@@ -1,0 +1,5 @@
+# TypeScript check (fails fast if types are broken)
+npx tsc --noEmit
+
+# Lint-staged (runs ESLint on staged files)
+npx lint-staged

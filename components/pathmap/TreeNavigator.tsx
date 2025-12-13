@@ -54,7 +54,7 @@ function getLayoutedElements(
   edges: Edge[],
   direction: 'TB' | 'LR' = 'TB'
 ) {
-  const isHorizontal = direction === 'LR';
+  // Note: isHorizontal available for future horizontal layout support
   dagreGraph.setGraph({ rankdir: direction, nodesep: 50, ranksep: 100 });
 
   nodes.forEach((node) => {
@@ -115,18 +115,16 @@ interface TreeNavigatorProps {
   className?: string;
 }
 
-export function TreeNavigator({
-  pathId,
-  nodes: dbNodes,
-  rootNodeId,
-  disclosureLevel = 2,
-  initialExpandedNodeIds,
-  initialSelectedNodeId,
-  isReadOnly = false,
-  onNodeSelect,
-  analytics,
-  className,
-}: TreeNavigatorProps) {
+export function TreeNavigator(props: TreeNavigatorProps) {
+  const {
+    nodes: dbNodes,
+    disclosureLevel = 2,
+    initialExpandedNodeIds,
+    onNodeSelect,
+    analytics,
+    className,
+  } = props;
+  // Note: pathId, rootNodeId, initialSelectedNodeId, isReadOnly available via props for future use
   // Track which nodes are expanded
   // Use initialExpandedNodeIds if provided (for shared views), otherwise default to root nodes
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(() => {

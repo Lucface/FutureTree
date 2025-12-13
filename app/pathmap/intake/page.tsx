@@ -47,9 +47,10 @@ export default function IntakePage() {
         </div>
 
         {/* Benefits */}
+        <h2 className="sr-only">Benefits</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
           <div className="flex items-start gap-3 p-4 bg-background rounded-lg border">
-            <span className="text-2xl">🎯</span>
+            <span className="text-2xl" aria-hidden="true">🎯</span>
             <div>
               <h3 className="font-medium text-sm">Personalized</h3>
               <p className="text-xs text-muted-foreground">
@@ -58,7 +59,7 @@ export default function IntakePage() {
             </div>
           </div>
           <div className="flex items-start gap-3 p-4 bg-background rounded-lg border">
-            <span className="text-2xl">📊</span>
+            <span className="text-2xl" aria-hidden="true">📊</span>
             <div>
               <h3 className="font-medium text-sm">Data-Backed</h3>
               <p className="text-xs text-muted-foreground">
@@ -67,7 +68,7 @@ export default function IntakePage() {
             </div>
           </div>
           <div className="flex items-start gap-3 p-4 bg-background rounded-lg border">
-            <span className="text-2xl">⏱️</span>
+            <span className="text-2xl" aria-hidden="true">⏱️</span>
             <div>
               <h3 className="font-medium text-sm">Quick</h3>
               <p className="text-xs text-muted-foreground">
@@ -78,9 +79,12 @@ export default function IntakePage() {
         </div>
 
         {/* Form Card */}
-        <div className="bg-background rounded-xl border shadow-sm p-6 sm:p-8">
-          <IntakeForm onComplete={handleComplete} />
-        </div>
+        <section aria-labelledby="intake-form-heading">
+          <h2 id="intake-form-heading" className="sr-only">Business Profile Form</h2>
+          <div className="bg-background rounded-xl border shadow-sm p-6 sm:p-8">
+            <IntakeForm onComplete={handleComplete} />
+          </div>
+        </section>
 
         {/* Privacy Note */}
         <p className="text-center text-xs text-muted-foreground mt-6">

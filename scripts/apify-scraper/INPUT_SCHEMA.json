@@ -1,0 +1,66 @@
+{
+  "title": "Starter Story Scraper Input",
+  "description": "Configuration for scraping case studies from Starter Story",
+  "type": "object",
+  "schemaVersion": 1,
+  "properties": {
+    "sessionCookies": {
+      "title": "Session Cookies",
+      "description": "Cookies from your authenticated Starter Story session. Get these from browser DevTools > Application > Cookies",
+      "type": "array",
+      "editor": "json",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "value": { "type": "string" },
+          "domain": { "type": "string" }
+        }
+      },
+      "default": []
+    },
+    "maxCaseStudies": {
+      "title": "Max Case Studies",
+      "description": "Maximum number of case studies to extract",
+      "type": "integer",
+      "default": 5000,
+      "minimum": 1,
+      "maximum": 10000
+    },
+    "delayBetweenRequests": {
+      "title": "Delay Between Requests (ms)",
+      "description": "Delay between page requests in milliseconds. Higher = more respectful",
+      "type": "integer",
+      "default": 2500,
+      "minimum": 1000,
+      "maximum": 10000
+    },
+    "startPage": {
+      "title": "Start Page",
+      "description": "Page number to start from (for resuming)",
+      "type": "integer",
+      "default": 1,
+      "minimum": 1
+    },
+    "industries": {
+      "title": "Industries Filter",
+      "description": "Only scrape specific industries. Leave empty for all.",
+      "type": "array",
+      "items": { "type": "string" },
+      "default": [],
+      "editor": "stringList"
+    },
+    "minRevenue": {
+      "title": "Minimum Revenue",
+      "description": "Filter by minimum monthly revenue (e.g., 10000)",
+      "type": "integer",
+      "nullable": true
+    },
+    "maxRevenue": {
+      "title": "Maximum Revenue",
+      "description": "Filter by maximum monthly revenue",
+      "type": "integer",
+      "nullable": true
+    }
+  }
+}

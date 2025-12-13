@@ -57,10 +57,10 @@ export function PremiumButton({
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
           'disabled:pointer-events-none disabled:opacity-50',
 
-          // Size variants
-          size === 'sm' && 'h-9 px-4 text-sm gap-1.5',
-          size === 'md' && 'h-11 px-6 text-base gap-2',
-          size === 'lg' && 'h-14 px-8 text-lg gap-2.5',
+          // Size variants - minimum 44px height for touch targets (WCAG 2.5.5)
+          size === 'sm' && 'h-11 min-w-[44px] px-4 text-sm gap-1.5',
+          size === 'md' && 'h-11 min-w-[44px] px-6 text-base gap-2',
+          size === 'lg' && 'h-14 min-w-[44px] px-8 text-lg gap-2.5',
 
           // Primary - the hero CTA (dark button, white text)
           variant === 'primary' && [

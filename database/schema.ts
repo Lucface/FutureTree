@@ -122,6 +122,18 @@ export const clientContexts = pgTable('client_contexts', {
   annualRevenue: decimal('annual_revenue', { precision: 14, scale: 2 }),
   yearsInBusiness: integer('years_in_business'),
 
+  // Architecture-specific fields (for creative/professional service firms)
+  firmType: varchar('firm_type', { length: 50 }), // 'residential', 'commercial', 'mixed', 'specialty'
+  designTools: jsonb('design_tools').$type<string[]>().default([]), // ['Revit', 'SketchUp', 'Rhino', 'Affinity', etc.]
+  currentAiFamiliarity: integer('current_ai_familiarity'), // 1-5 scale
+  avgProjectsPerMonth: integer('avg_projects_per_month'),
+  teamComposition: jsonb('team_composition').$type<{
+    architects?: number;
+    designers?: number;
+    admin?: number;
+    other?: number;
+  }>(),
+
   // Strategic context
   currentStage: varchar('current_stage', { length: 100 }), // 'startup', 'growth', 'scale', 'mature'
   primaryGoal: text('primary_goal'),
@@ -425,6 +437,50 @@ export const outcomeSurveys = pgTable('outcome_surveys', {
 });
 
 /**
+ * Team Questionnaire Responses (JDA AI Readiness)
+ * Stores individual team member responses to the AI readiness questionnaire
+ * Enables sentiment analysis, progress tracking, and path customization
+ */
+export const teamQuestionnaireResponses = pgTable('team_questionnaire_responses', {
+  id: uuid('id').primaryKey().defaultRandom(),
+
+  // Respondent info
+  respondentId: varchar('respondent_id', { length: 100 }).notNull(), // From TwentyFive
+  respondentEmail: varchar('respondent_email', { length: 255 }).notNull(),
+  respondentName: varchar('respondent_name', { length: 255 }),
+  respondentRole: varchar('respondent_role', { length: 50 }).notNull(), // 'architect', 'designer', 'admin', 'principal', 'other'
+
+  // Company/Context link (for multi-tenant)
+  clientContextId: uuid('client_context_id').references(() => clientContexts.id, { onDelete: 'set null' }),
+  companyId: varchar('company_id', { length: 100 }), // From TwentyFive, for routing
+
+  // Questionnaire metadata
+  questionnaireVersion: varchar('questionnaire_version', { length: 20 }).default('v1'),
+
+  // Raw responses (Jesse's 7+ questions)
+  responses: jsonb('responses').$type<{
+    questionId: string;
+    questionText?: string;
+    answerType: 'text' | 'number' | 'scale' | 'multiselect' | 'boolean';
+    answer: string | number | string[] | boolean;
+  }[]>().notNull(),
+
+  // Calculated scores
+  aiReadinessScore: integer('ai_readiness_score'), // 1-100
+  sentimentCategory: varchar('sentiment_category', { length: 20 }), // 'skeptic', 'curious', 'eager'
+  adoptionBarriers: jsonb('adoption_barriers').$type<string[]>(),
+  highValueOpportunities: jsonb('high_value_opportunities').$type<string[]>(),
+
+  // Status
+  status: varchar('status', { length: 20 }).default('received').notNull(), // 'received', 'analyzed', 'actioned'
+
+  // Timestamps
+  submittedAt: timestamp('submitted_at').notNull(), // When respondent submitted
+  receivedAt: timestamp('received_at').defaultNow().notNull(), // When webhook received
+  analyzedAt: timestamp('analyzed_at'),
+});
+
+/**
  * Metric Recalculation Jobs (Model Updates)
  * Tracks when and why metrics were recalculated
  */
@@ -500,6 +556,329 @@ export const metricRecalculationJobsRelations = relations(metricRecalculationJob
 }));
 
 // ============================================================================
+// SELF-DISCOVERY: Business Profile & Potentiality Engine
+// ============================================================================
+
+/**
+ * Business Profiles (Core Self-Discovery)
+ * Captures the complete business identity for personalized recommendations
+ * Generic schema - works for ANY industry (video production, architecture, consulting, etc.)
+ */
+export const businessProfiles = pgTable('business_profiles', {
+  id: uuid('id').primaryKey().defaultRandom(),
+
+  // Core Identity
+  companyName: varchar('company_name', { length: 200 }).notNull(),
+  industry: varchar('industry', { length: 100 }).notNull(), // 'video_production', 'architecture', 'consulting'
+  subIndustry: varchar('sub_industry', { length: 100 }), // 'corporate_video', 'residential', 'management'
+  location: varchar('location', { length: 200 }),
+  yearsInBusiness: integer('years_in_business'),
+  teamSize: varchar('team_size', { length: 50 }), // 'solo', '2_5', '6_10', '11_25', '26_50', '50_plus'
+
+  // Qualified Specifications (What makes them capable)
+  qualifications: jsonb('qualifications').$type<{
+    certifications?: string[];
+    licenses?: string[];
+    equipment?: string[];
+    tools?: string[];
+    specialSkills?: string[];
+  }>().default({}),
+
+  // Social Proof (What validates their reputation)
+  socialProof: jsonb('social_proof').$type<{
+    portfolioStrength?: 'weak' | 'moderate' | 'strong' | 'exceptional';
+    notableClients?: string[];
+    testimonialCount?: number;
+    awards?: string[];
+    caseStudiesDocumented?: number;
+    brandRecognition?: 'local' | 'regional' | 'national' | 'international';
+  }>().default({}),
+
+  // Infrastructure (What they have to work with)
+  infrastructure: jsonb('infrastructure').$type<{
+    teamComposition?: Record<string, number>; // { 'videographers': 2, 'editors': 1 }
+    processes?: string[]; // What workflows they have
+    capacity?: 'underutilized' | 'optimal' | 'stretched' | 'maxed';
+    techStack?: string[];
+  }>().default({}),
+
+  // History (What they've accomplished)
+  history: jsonb('history').$type<{
+    industriesServed?: string[];
+    projectTypes?: string[];
+    avgProjectValue?: number;
+    totalProjectsCompleted?: number;
+    notableProjects?: string[];
+    yearsOfExperience?: Record<string, number>; // { 'corporate': 5, 'events': 3 }
+  }>().default({}),
+
+  // Current Position (Where they are now)
+  currentRevenue: varchar('current_revenue', { length: 50 }), // 'under_100k', '100k_250k', etc.
+  revenueGrowth: varchar('revenue_growth', { length: 50 }), // 'declining', 'flat', 'moderate', 'strong', 'rapid'
+  biggestChallenge: text('biggest_challenge'),
+  growthGoal: text('growth_goal'),
+
+  // Calculated Insights (AI-generated analysis)
+  marketPosition: jsonb('market_position').$type<{
+    tier?: 'emerging' | 'established' | 'leader' | 'dominant';
+    competitiveAdvantages?: string[];
+    vulnerabilities?: string[];
+    marketShare?: 'tiny' | 'small' | 'moderate' | 'significant' | 'major';
+  }>(),
+
+  coreCompetencies: jsonb('core_competencies').$type<{
+    primary?: string[];
+    secondary?: string[];
+    emerging?: string[];
+    underutilized?: string[];
+  }>(),
+
+  expansionPaths: jsonb('expansion_paths').$type<{
+    vertical?: { market: string; viability: number; notes?: string }[];
+    horizontal?: { capability: string; viability: number; notes?: string }[];
+    recommended?: string;
+  }>(),
+
+  // Profile completion tracking
+  completionPercent: integer('completion_percent').default(0),
+  lastAnalyzedAt: timestamp('last_analyzed_at'),
+
+  // Session/user tracking
+  sessionId: varchar('session_id', { length: 100 }),
+  userId: uuid('user_id'), // For future auth integration
+
+  // Timestamps
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+/**
+ * Case Studies (Intelligence Engine)
+ * Real-world examples of business transformations for matching and recommendations
+ * Sourced from Starter Story, podcasts, interviews, public data
+ */
+export const caseStudies = pgTable('case_studies', {
+  id: uuid('id').primaryKey().defaultRandom(),
+
+  // Company Identity
+  companyName: varchar('company_name', { length: 200 }).notNull(),
+  industry: varchar('industry', { length: 100 }).notNull(),
+  subIndustry: varchar('sub_industry', { length: 100 }),
+  location: varchar('location', { length: 200 }),
+
+  // Starting State (Where they began)
+  startingState: jsonb('starting_state').$type<{
+    revenue?: string; // Revenue range
+    teamSize?: string;
+    yearsInBusiness?: number;
+    challenges?: string[];
+    capabilities?: string[];
+    marketPosition?: string;
+  }>().notNull(),
+
+  // Ending State (Where they got to)
+  endingState: jsonb('ending_state').$type<{
+    revenue?: string;
+    teamSize?: string;
+    revenueGrowth?: string; // '2x', '5x', '10x'
+    achievements?: string[];
+    newCapabilities?: string[];
+    marketPosition?: string;
+  }>().notNull(),
+
+  // Strategy Used
+  strategyType: varchar('strategy_type', { length: 100 }).notNull(), // 'vertical_specialization', 'content_led', 'partnership'
+  expansionType: varchar('expansion_type', { length: 50 }), // 'vertical', 'horizontal', 'evolution'
+  targetMarket: varchar('target_market', { length: 100 }), // 'healthcare', 'legal', 'enterprise'
+
+  // Journey Details
+  timeline: jsonb('timeline').$type<{
+    totalMonths?: number;
+    phases?: { name: string; months: number; description?: string }[];
+    keyMilestones?: { month: number; event: string }[];
+  }>(),
+
+  keyActions: jsonb('key_actions').$type<{
+    action: string;
+    impact: string;
+    difficulty?: 'easy' | 'moderate' | 'hard';
+  }[]>().default([]),
+
+  capitalInvested: jsonb('capital_invested').$type<{
+    total?: number;
+    breakdown?: Record<string, number>;
+    fundingSource?: string;
+  }>(),
+
+  // Outcomes & Lessons
+  outcomes: jsonb('outcomes').$type<{
+    revenueMultiplier?: number;
+    profitMarginChange?: number;
+    teamGrowth?: number;
+    newClientsGained?: number;
+    customMetrics?: Record<string, number>;
+  }>(),
+
+  pitfalls: jsonb('pitfalls').$type<{
+    challenge: string;
+    howOvercome?: string;
+    advice?: string;
+  }[]>().default([]),
+
+  lessonsLearned: text('lessons_learned'),
+  advice: text('advice'), // Direct advice from founder
+
+  // Source Information
+  sourceUrl: varchar('source_url', { length: 500 }),
+  sourcePlatform: varchar('source_platform', { length: 50 }), // 'starter_story', 'youtube', 'podcast', 'interview'
+  sourceDate: timestamp('source_date'),
+  founderQuotes: jsonb('founder_quotes').$type<string[]>().default([]),
+
+  // Matching metadata
+  tags: jsonb('tags').$type<string[]>().default([]),
+  matchingKeywords: jsonb('matching_keywords').$type<string[]>().default([]),
+
+  // Quality & validation
+  confidenceLevel: varchar('confidence_level', { length: 20 }).default('medium'), // 'low', 'medium', 'high', 'verified'
+  isVerified: boolean('is_verified').default(false),
+  verifiedBy: varchar('verified_by', { length: 100 }),
+
+  // Display
+  featuredImage: varchar('featured_image', { length: 500 }),
+  summary: text('summary'), // One-paragraph summary for cards
+
+  // Timestamps
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+/**
+ * Profile-CaseStudy Matches (Recommendations)
+ * Links business profiles to relevant case studies with match scores
+ */
+export const profileCaseStudyMatches = pgTable('profile_case_study_matches', {
+  id: uuid('id').primaryKey().defaultRandom(),
+
+  profileId: uuid('profile_id').references(() => businessProfiles.id, { onDelete: 'cascade' }).notNull(),
+  caseStudyId: uuid('case_study_id').references(() => caseStudies.id, { onDelete: 'cascade' }).notNull(),
+
+  // Match scoring
+  overallScore: decimal('overall_score', { precision: 5, scale: 2 }).notNull(), // 0-100
+  industryMatch: decimal('industry_match', { precision: 5, scale: 2 }),
+  revenueMatch: decimal('revenue_match', { precision: 5, scale: 2 }),
+  teamSizeMatch: decimal('team_size_match', { precision: 5, scale: 2 }),
+  capabilityMatch: decimal('capability_match', { precision: 5, scale: 2 }),
+  challengeMatch: decimal('challenge_match', { precision: 5, scale: 2 }),
+
+  // Why this match matters
+  matchReason: text('match_reason'),
+  keyTakeaways: jsonb('key_takeaways').$type<string[]>().default([]),
+
+  // User interaction
+  wasViewed: boolean('was_viewed').default(false),
+  wasHelpful: boolean('was_helpful'),
+  userNotes: text('user_notes'),
+
+  // Timestamps
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+/**
+ * Industry Profiles (Flexible Extension)
+ * Stores industry-specific data that doesn't fit in the generic businessProfiles
+ * Allows different industries to have different fields without schema changes
+ */
+export const industryProfiles = pgTable('industry_profiles', {
+  id: uuid('id').primaryKey().defaultRandom(),
+
+  profileId: uuid('profile_id').references(() => businessProfiles.id, { onDelete: 'cascade' }).notNull(),
+  industryType: varchar('industry_type', { length: 50 }).notNull(), // 'video_production', 'architecture', etc.
+
+  // Flexible industry-specific data
+  profileData: jsonb('profile_data').$type<Record<string, unknown>>().default({}),
+
+  // Examples:
+  // video_production: { cameraGear: [], editingSoftware: [], productionTypes: [] }
+  // architecture: { firmType: 'residential', designTools: [], projectScale: 'commercial' }
+  // consulting: { specialties: [], frameworks: [], clientTypes: [] }
+
+  // Timestamps
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+/**
+ * Discovery Sessions (Analytics)
+ * Tracks user journey through the self-discovery process
+ */
+export const discoverySessions = pgTable('discovery_sessions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+
+  profileId: uuid('profile_id').references(() => businessProfiles.id, { onDelete: 'set null' }),
+  sessionId: varchar('session_id', { length: 100 }).notNull(),
+
+  // Progress tracking
+  currentStep: integer('current_step').default(1).notNull(),
+  totalSteps: integer('total_steps').default(4).notNull(),
+  completedSteps: jsonb('completed_steps').$type<number[]>().default([]),
+
+  // Time tracking
+  startedAt: timestamp('started_at').defaultNow().notNull(),
+  completedAt: timestamp('completed_at'),
+  totalTimeSeconds: integer('total_time_seconds'),
+
+  // Device/context
+  userAgent: text('user_agent'),
+  referrer: varchar('referrer', { length: 500 }),
+
+  // Outcome
+  wasAbandoned: boolean('was_abandoned').default(false),
+  abandonedAtStep: integer('abandoned_at_step'),
+
+  // Timestamps
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// ============================================================================
+// SELF-DISCOVERY RELATIONS
+// ============================================================================
+
+export const businessProfilesRelations = relations(businessProfiles, ({ many }) => ({
+  caseStudyMatches: many(profileCaseStudyMatches),
+  industryProfiles: many(industryProfiles),
+  discoverySessions: many(discoverySessions),
+}));
+
+export const caseStudiesRelations = relations(caseStudies, ({ many }) => ({
+  profileMatches: many(profileCaseStudyMatches),
+}));
+
+export const profileCaseStudyMatchesRelations = relations(profileCaseStudyMatches, ({ one }) => ({
+  profile: one(businessProfiles, {
+    fields: [profileCaseStudyMatches.profileId],
+    references: [businessProfiles.id],
+  }),
+  caseStudy: one(caseStudies, {
+    fields: [profileCaseStudyMatches.caseStudyId],
+    references: [caseStudies.id],
+  }),
+}));
+
+export const industryProfilesRelations = relations(industryProfiles, ({ one }) => ({
+  profile: one(businessProfiles, {
+    fields: [industryProfiles.profileId],
+    references: [businessProfiles.id],
+  }),
+}));
+
+export const discoverySessionsRelations = relations(discoverySessions, ({ one }) => ({
+  profile: one(businessProfiles, {
+    fields: [discoverySessions.profileId],
+    references: [businessProfiles.id],
+  }),
+}));
+
+// ============================================================================
 // TYPE EXPORTS
 // ============================================================================
 
@@ -530,5 +909,24 @@ export type NewTwentyfiveConnection = typeof twentyfiveConnections.$inferInsert;
 export type OutcomeSurvey = typeof outcomeSurveys.$inferSelect;
 export type NewOutcomeSurvey = typeof outcomeSurveys.$inferInsert;
 
+export type TeamQuestionnaireResponse = typeof teamQuestionnaireResponses.$inferSelect;
+export type NewTeamQuestionnaireResponse = typeof teamQuestionnaireResponses.$inferInsert;
+
 export type MetricRecalculationJob = typeof metricRecalculationJobs.$inferSelect;
 export type NewMetricRecalculationJob = typeof metricRecalculationJobs.$inferInsert;
+
+// Self-Discovery types
+export type BusinessProfile = typeof businessProfiles.$inferSelect;
+export type NewBusinessProfile = typeof businessProfiles.$inferInsert;
+
+export type CaseStudy = typeof caseStudies.$inferSelect;
+export type NewCaseStudy = typeof caseStudies.$inferInsert;
+
+export type ProfileCaseStudyMatch = typeof profileCaseStudyMatches.$inferSelect;
+export type NewProfileCaseStudyMatch = typeof profileCaseStudyMatches.$inferInsert;
+
+export type IndustryProfile = typeof industryProfiles.$inferSelect;
+export type NewIndustryProfile = typeof industryProfiles.$inferInsert;
+
+export type DiscoverySession = typeof discoverySessions.$inferSelect;
+export type NewDiscoverySession = typeof discoverySessions.$inferInsert;

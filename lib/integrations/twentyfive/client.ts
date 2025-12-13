@@ -3,9 +3,6 @@ import {
   twentyfiveConnections,
   integrationWebhooks,
   strategicPaths,
-  decisionNodes,
-  pathExplorations,
-  pathOutcomes,
 } from '@/database/schema';
 import { eq, and } from 'drizzle-orm';
 import { createSignedHeaders } from './hmac';

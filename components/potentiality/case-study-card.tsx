@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -98,9 +99,11 @@ export function CaseStudyCard({
       {/* Header */}
       <div className="flex items-center gap-4 mb-4">
         {logo ? (
-          <img
+          <Image
             src={logo}
             alt={company}
+            width={48}
+            height={48}
             className="w-12 h-12 rounded-lg object-contain bg-gray-100 dark:bg-dark-elevated p-1"
           />
         ) : (
@@ -153,7 +156,7 @@ export function CaseStudyCard({
 
       {/* Quote */}
       <blockquote className="mt-4 text-sm text-gray-600 dark:text-gray-400 italic">
-        "{quote}"
+        &ldquo;{quote}&rdquo;
       </blockquote>
 
       {/* Hover Indicator */}

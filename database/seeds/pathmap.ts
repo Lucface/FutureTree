@@ -1,11 +1,21 @@
 /**
  * PathMap Seed Data
  * Seeds 3 strategic paths with decision nodes for testing
+ * Also seeds explorations, outcomes, and surveys for testing analytics
  */
 
 import { db } from '@/lib/db';
-import { strategicPaths, decisionNodes } from '@/database/schema';
+import {
+  strategicPaths,
+  decisionNodes,
+  clientContexts,
+  pathExplorations,
+  pathOutcomes,
+  outcomeSurveys,
+  metricRecalculationJobs,
+} from '@/database/schema';
 import { v4 as uuidv4 } from 'uuid';
+import { subDays, addDays } from 'date-fns';
 
 // Generate stable UUIDs for relationships
 const pathIds = {
@@ -40,10 +50,35 @@ const nodeIds = {
   p_optimize: uuidv4(),
 };
 
+// IDs for test explorations and outcomes
+const contextIds = {
+  context1: uuidv4(),
+  context2: uuidv4(),
+};
+
+const explorationIds = {
+  exp1: uuidv4(),
+  exp2: uuidv4(),
+  exp3: uuidv4(),
+  exp4: uuidv4(),
+  exp5: uuidv4(),
+};
+
+const outcomeIds = {
+  outcome1: uuidv4(),
+  outcome2: uuidv4(),
+  outcome3: uuidv4(),
+};
+
 export async function seedPathMap() {
   console.log('🌱 Seeding PathMap data...');
 
-  // Clear existing data
+  // Clear existing data (in reverse dependency order)
+  await db.delete(outcomeSurveys);
+  await db.delete(metricRecalculationJobs);
+  await db.delete(pathOutcomes);
+  await db.delete(pathExplorations);
+  await db.delete(clientContexts);
   await db.delete(decisionNodes);
   await db.delete(strategicPaths);
 
@@ -468,6 +503,271 @@ export async function seedPathMap() {
 
   console.log(`✅ Seeded ${Object.keys(pathIds).length} strategic paths`);
   console.log(`✅ Seeded ${allNodes.length} decision nodes`);
+
+  // =========================================================================
+  // TEST DATA: Client Contexts
+  // =========================================================================
+  const now = new Date();
+
+  await db.insert(clientContexts).values([
+    {
+      id: contextIds.context1,
+      sessionId: 'test-session-1',
+      email: 'test1@example.com',
+      companyName: 'Test Company Alpha',
+      industry: 'SaaS',
+      companySize: '11-50',
+      annualRevenue: '500000.00',
+      yearsInBusiness: 3,
+      currentStage: 'growth',
+      primaryGoal: 'Increase market share in healthcare vertical',
+      biggestChallenge: 'Competing with established players',
+      timelinePreference: 'moderate',
+      riskTolerance: 'moderate',
+      availableCapital: '25000.00',
+      budgetFlexibility: 'flexible',
+    },
+    {
+      id: contextIds.context2,
+      sessionId: 'test-session-2',
+      email: 'test2@example.com',
+      companyName: 'Test Company Beta',
+      industry: 'Professional Services',
+      companySize: 'solo',
+      annualRevenue: '100000.00',
+      yearsInBusiness: 1,
+      currentStage: 'startup',
+      primaryGoal: 'Build thought leadership through content',
+      biggestChallenge: 'Limited time for content creation',
+      timelinePreference: 'patient',
+      riskTolerance: 'conservative',
+      availableCapital: '5000.00',
+      budgetFlexibility: 'fixed',
+    },
+  ]);
+
+  console.log(`✅ Seeded ${Object.keys(contextIds).length} client contexts`);
+
+  // =========================================================================
+  // TEST DATA: Path Explorations
+  // =========================================================================
+  await db.insert(pathExplorations).values([
+    {
+      id: explorationIds.exp1,
+      contextId: contextIds.context1,
+      sessionId: 'test-session-1',
+      pathId: pathIds.vertical,
+      nodesExpanded: [nodeIds.v_root, nodeIds.v_identify, nodeIds.v_position],
+      maxDepthReached: 3,
+      startedAt: subDays(now, 95),
+      endedAt: subDays(now, 95),
+      totalTimeSeconds: 1200,
+      evidenceViewed: [nodeIds.v_delivery],
+      whatIfSimulations: 2,
+      exportedAt: subDays(now, 95),
+      exportType: 'pdf',
+      converted: true,
+      rating: 5,
+      feedback: 'Very helpful visualization of the path ahead.',
+    },
+    {
+      id: explorationIds.exp2,
+      contextId: contextIds.context1,
+      sessionId: 'test-session-1b',
+      pathId: pathIds.vertical,
+      nodesExpanded: [nodeIds.v_root, nodeIds.v_identify],
+      maxDepthReached: 2,
+      startedAt: subDays(now, 65),
+      endedAt: subDays(now, 65),
+      totalTimeSeconds: 900,
+      evidenceViewed: [],
+      whatIfSimulations: 1,
+      exportedAt: subDays(now, 65),
+      exportType: 'link',
+      converted: true,
+      rating: 4,
+    },
+    {
+      id: explorationIds.exp3,
+      contextId: contextIds.context2,
+      sessionId: 'test-session-2',
+      pathId: pathIds.contentLed,
+      nodesExpanded: [nodeIds.c_root, nodeIds.c_strategy, nodeIds.c_creation],
+      maxDepthReached: 3,
+      startedAt: subDays(now, 35),
+      endedAt: subDays(now, 35),
+      totalTimeSeconds: 1800,
+      evidenceViewed: [nodeIds.c_scale],
+      whatIfSimulations: 3,
+      exportedAt: subDays(now, 35),
+      exportType: 'crm',
+      converted: true,
+      rating: 5,
+      feedback: 'Perfect for planning my content strategy.',
+    },
+    {
+      id: explorationIds.exp4,
+      contextId: contextIds.context2,
+      sessionId: 'test-session-2b',
+      pathId: pathIds.contentLed,
+      nodesExpanded: [nodeIds.c_root],
+      maxDepthReached: 1,
+      startedAt: subDays(now, 10),
+      endedAt: subDays(now, 10),
+      totalTimeSeconds: 300,
+      evidenceViewed: [],
+      whatIfSimulations: 0,
+      converted: false,
+    },
+    {
+      id: explorationIds.exp5,
+      contextId: contextIds.context1,
+      sessionId: 'test-session-1c',
+      pathId: pathIds.partnership,
+      nodesExpanded: [nodeIds.p_root, nodeIds.p_identify, nodeIds.p_outreach],
+      maxDepthReached: 3,
+      startedAt: subDays(now, 5),
+      endedAt: subDays(now, 5),
+      totalTimeSeconds: 1500,
+      evidenceViewed: [],
+      whatIfSimulations: 2,
+      exportedAt: subDays(now, 5),
+      exportType: 'pdf',
+      converted: true,
+    },
+  ]);
+
+  console.log(`✅ Seeded ${Object.keys(explorationIds).length} path explorations`);
+
+  // =========================================================================
+  // TEST DATA: Path Outcomes (for variance testing)
+  // =========================================================================
+  await db.insert(pathOutcomes).values([
+    {
+      id: outcomeIds.outcome1,
+      explorationId: explorationIds.exp1,
+      pathId: pathIds.vertical,
+      predictedTimeline: 12,
+      predictedCost: '15000.00',
+      predictedSuccessRate: '72.00',
+      actualTimeline: 14,
+      actualCost: '18000.00',
+      actualOutcome: 'success',
+      timelineVariance: '16.67',
+      costVariance: '20.00',
+      attributionNotes: 'Slightly over budget due to unexpected conference costs.',
+      surveyCompletedAt: subDays(now, 5),
+      lessonLearned: 'Build in 20% buffer for marketing expenses.',
+    },
+    {
+      id: outcomeIds.outcome2,
+      explorationId: explorationIds.exp2,
+      pathId: pathIds.vertical,
+      predictedTimeline: 12,
+      predictedCost: '15000.00',
+      predictedSuccessRate: '72.00',
+      actualTimeline: 20,
+      actualCost: '22000.00',
+      actualOutcome: 'partial',
+      timelineVariance: '66.67',
+      costVariance: '46.67',
+      attributionNotes: 'Market entry took longer than expected.',
+      failureLayer: 'decision',
+      surveyCompletedAt: subDays(now, 2),
+      lessonLearned: 'Need better market validation before committing resources.',
+    },
+    {
+      id: outcomeIds.outcome3,
+      explorationId: explorationIds.exp3,
+      pathId: pathIds.contentLed,
+      predictedTimeline: 16,
+      predictedCost: '10000.00',
+      predictedSuccessRate: '65.00',
+      actualTimeline: 14,
+      actualCost: '8000.00',
+      actualOutcome: 'success',
+      timelineVariance: '-12.50',
+      costVariance: '-20.00',
+      attributionNotes: 'Faster than expected due to existing audience.',
+      surveyCompletedAt: subDays(now, 1),
+      lessonLearned: 'Existing network accelerated content distribution.',
+    },
+  ]);
+
+  console.log(`✅ Seeded ${Object.keys(outcomeIds).length} path outcomes`);
+
+  // =========================================================================
+  // TEST DATA: Outcome Surveys
+  // =========================================================================
+  await db.insert(outcomeSurveys).values([
+    {
+      explorationId: explorationIds.exp4,
+      surveyType: '30day',
+      scheduledFor: subDays(now, 5),
+      status: 'scheduled',
+      deliveryMethod: 'email',
+      recipientEmail: 'test2@example.com',
+    },
+    {
+      explorationId: explorationIds.exp4,
+      surveyType: '60day',
+      scheduledFor: addDays(now, 25),
+      status: 'scheduled',
+      deliveryMethod: 'email',
+      recipientEmail: 'test2@example.com',
+    },
+    {
+      explorationId: explorationIds.exp5,
+      surveyType: '30day',
+      scheduledFor: addDays(now, 25),
+      status: 'scheduled',
+      deliveryMethod: 'email',
+      recipientEmail: 'test1@example.com',
+    },
+    {
+      explorationId: explorationIds.exp1,
+      outcomeId: outcomeIds.outcome1,
+      surveyType: '90day',
+      scheduledFor: subDays(now, 10),
+      status: 'completed',
+      deliveryMethod: 'email',
+      recipientEmail: 'test1@example.com',
+      sentAt: subDays(now, 10),
+      completedAt: subDays(now, 5),
+      responses: {
+        outcome: 'success',
+        actualSpend: 18000,
+        progressPercent: 100,
+        wouldRecommend: 9,
+        lessons: 'The path was well-structured and helped us focus.',
+      },
+    },
+  ]);
+
+  console.log('✅ Seeded 4 outcome surveys');
+
+  // =========================================================================
+  // TEST DATA: Metric Recalculation Job (history)
+  // =========================================================================
+  await db.insert(metricRecalculationJobs).values({
+    pathId: pathIds.vertical,
+    scope: 'path',
+    triggerType: 'manual',
+    triggeredBy: 'seed-script',
+    status: 'completed',
+    startedAt: subDays(now, 1),
+    completedAt: subDays(now, 1),
+    outcomesProcessed: 2,
+    metricsUpdated: {
+      previousValues: { successRate: 70, timelineP25: 6, timelineP75: 18 },
+      newValues: { successRate: 72, timelineP25: 6, timelineP75: 18 },
+      changePercent: { successRate: 2.86 },
+    },
+    previousModelVersion: 0,
+    newModelVersion: 1,
+  });
+
+  console.log('✅ Seeded 1 metric recalculation job');
   console.log('🎉 PathMap seed complete!');
 }
 

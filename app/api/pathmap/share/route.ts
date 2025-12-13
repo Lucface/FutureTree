@@ -6,7 +6,7 @@ import {
   createShareUrl,
   calculateExpirationDate,
 } from '@/lib/share';
-import { hash, compare } from 'bcryptjs';
+import { hash } from 'bcryptjs';
 
 /**
  * Request schema for creating a share link

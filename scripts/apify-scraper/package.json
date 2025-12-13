@@ -1,0 +1,31 @@
+{
+  "name": "starter-story-scraper",
+  "version": "1.0.0",
+  "description": "Apify actor to extract case studies from Starter Story for FutureTree",
+  "type": "module",
+  "main": "main.js",
+  "scripts": {
+    "start": "node main.js",
+    "test": "node test-single.js"
+  },
+  "dependencies": {
+    "apify": "^3.1.0",
+    "crawlee": "^3.5.0",
+    "puppeteer": "^21.0.0"
+  },
+  "author": "FutureTree",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "apify": {
+    "title": "Starter Story Case Study Scraper",
+    "description": "Extracts business case studies from starterstory.com",
+    "isPublic": false,
+    "usesStandbyPool": false,
+    "categories": [
+      "TOOLS",
+      "BUSINESS"
+    ]
+  }
+}

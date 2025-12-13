@@ -21,13 +21,6 @@ interface ScrollRevealProps {
   once?: boolean;
 }
 
-const directionOffsets: Record<Direction, { x?: number; y?: number }> = {
-  up: { y: 40 },
-  down: { y: -40 },
-  left: { x: 40 },
-  right: { x: -40 },
-};
-
 /**
  * ScrollReveal - Elements animate in as they enter viewport.
  *

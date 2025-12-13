@@ -1,10 +1,8 @@
 import { db } from '@/lib/db';
 import {
   strategicPaths,
-  decisionNodes,
   pathOutcomes,
   metricRecalculationJobs,
-  type NewMetricRecalculationJob,
 } from '@/database/schema';
 import { eq, and, isNotNull, count, sql, desc } from 'drizzle-orm';
 import { updatePathContradictionFlags } from '@/lib/analytics/contradiction-detector';
@@ -277,25 +275,61 @@ function calculateNewMetrics(
 }
 
 /**
- * Check and recalculate all paths that need updating
+ * Extended result type for batch recalculation
  */
-export async function recalculateAllPaths(): Promise<RecalculationResult[]> {
+export interface BatchRecalculationResult extends RecalculationResult {
+  recalculated: boolean;
+}
+
+/**
+ * Check and recalculate all paths that need updating
+ * @param triggerType - What triggered this recalculation
+ * @param triggeredBy - Who/what initiated the recalculation
+ */
+export async function recalculateAllPaths(
+  triggerType: 'threshold_reached' | 'scheduled' | 'manual' | 'outcome_received' = 'scheduled',
+  triggeredBy: string = 'system'
+): Promise<BatchRecalculationResult[]> {
   const paths = await db.query.strategicPaths.findMany({
     where: eq(strategicPaths.isActive, true),
-    columns: { id: true },
+    columns: { id: true, name: true },
   });
 
-  const results: RecalculationResult[] = [];
+  const results: BatchRecalculationResult[] = [];
 
   for (const path of paths) {
     const needsRecalc = await checkRecalculationNeeded(path.id);
+
     if (needsRecalc) {
       try {
-        const result = await recalculatePath(path.id, 'threshold_reached');
-        results.push(result);
+        const result = await recalculatePath(path.id, triggerType, triggeredBy);
+        results.push({ ...result, recalculated: true });
       } catch (error) {
         console.error(`Failed to recalculate path ${path.id}:`, error);
+        // Add a failed result to track the error
+        results.push({
+          pathId: path.id,
+          pathName: path.name,
+          outcomesProcessed: 0,
+          previousValues: {},
+          newValues: {},
+          changePercent: {},
+          newModelVersion: 0,
+          recalculated: false,
+        });
       }
+    } else {
+      // Path didn't need recalculation
+      results.push({
+        pathId: path.id,
+        pathName: path.name,
+        outcomesProcessed: 0,
+        previousValues: {},
+        newValues: {},
+        changePercent: {},
+        newModelVersion: 0,
+        recalculated: false,
+      });
     }
   }
 

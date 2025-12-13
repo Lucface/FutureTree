@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Layers } from 'lucide-react';
 import { TreeNavigator, EvidencePanel, type TreeNode } from '@/components/pathmap';
@@ -209,7 +209,7 @@ interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
-export default function PathTreePage({ params }: PageProps) {
+export default function PathTreePage({ params: _params }: PageProps) {
   const [disclosureLevel, setDisclosureLevel] = useState<1 | 2 | 3>(2);
   const [selectedNode, setSelectedNode] = useState<DecisionNode | null>(null);
   const evidenceOpenTime = useRef<number>(0);
@@ -217,7 +217,7 @@ export default function PathTreePage({ params }: PageProps) {
   // For now, use mock data. In production, fetch from API based on slug
   const resolvedParams = { slug: 'vertical-specialization' }; // Simplified for mock
   const path = mockPaths[resolvedParams.slug];
-  const nodes = mockNodes[resolvedParams.slug] || [];
+  const nodes = useMemo(() => mockNodes[resolvedParams.slug] || [], [resolvedParams.slug]);
 
   // Analytics hook - tracks session automatically
   const analytics = usePathMapAnalytics({

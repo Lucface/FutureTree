@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, X, ChevronRight, Clock } from 'lucide-react';
-import { SURVEY_TYPES, type SurveyType } from '@/lib/jobs/survey-scheduler';
+import { SURVEY_TYPES, type SurveyType } from '@/lib/pathmap/survey-types';
 import { OutcomeSurveyModal } from './OutcomeSurveyModal';
 
 interface PendingSurvey {

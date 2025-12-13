@@ -10,7 +10,8 @@ export type TwentyFiveEventType =
   | 'project_completed'
   | 'milestone_reached'
   | 'deal_stage_changed'
-  | 'task_completed';
+  | 'task_completed'
+  | 'questionnaire_response'; // JDA team questionnaire responses
 
 // Inbound webhook payload
 export interface TwentyFiveWebhookPayload {
@@ -25,7 +26,8 @@ export type TwentyFiveEventData =
   | ProjectCompletedData
   | MilestoneReachedData
   | DealStageChangedData
-  | TaskCompletedData;
+  | TaskCompletedData
+  | QuestionnaireResponseData;
 
 export interface PerformanceUpdateData {
   projectId: string;
@@ -67,6 +69,62 @@ export interface TaskCompletedData {
   taskName: string;
   completedAt: string;
   completedBy: string;
+}
+
+/**
+ * Questionnaire Response Data (JDA Team Questionnaire)
+ *
+ * This is the payload TwentyFive sends when a team member submits
+ * the AI readiness questionnaire. Used for:
+ * - Team sentiment analysis
+ * - AI adoption path customization
+ * - Progress tracking
+ *
+ * Jesse's 7 Core Questions:
+ * 1. currentAiUsage - Normalize that everyone uses AI
+ * 2. tasksUsingAi - Find existing patterns
+ * 3. tasksCouldUseAi - Surface aspirations
+ * 4. goals - Define success criteria
+ * 5. uncertainTasks - Find the gold mine (high-value opportunities)
+ * 6. tasksNotForAi - Establish boundaries
+ * 7. aiFeeling - Surface hidden fears/hopes
+ *
+ * Additional context:
+ * 8. ipOwnershipConcerns - Jim's concern about IP
+ * 9. reputationConcerns - Professional identity
+ * 10. creativeControl - Where AI shouldn't override
+ * 11. qualityExpectations - Success metrics
+ * 12. learningPreferences - How to train
+ */
+export interface QuestionnaireResponseData {
+  // Respondent info
+  respondentId: string;
+  respondentEmail: string;
+  respondentName?: string;
+  respondentRole: 'architect' | 'designer' | 'admin' | 'principal' | 'other';
+  companyId?: string; // For multi-tenant routing
+
+  // Submission metadata
+  submittedAt: string;
+  questionnaireVersion?: string; // Track schema changes
+
+  // Core responses (Jesse's 7 questions)
+  responses: QuestionnaireResponse[];
+
+  // Calculated scores (optional, TwentyFive may pre-calculate)
+  scores?: {
+    aiReadinessScore?: number; // 1-100
+    sentimentCategory?: 'skeptic' | 'curious' | 'eager';
+    adoptionBarriers?: string[];
+    highValueOpportunities?: string[];
+  };
+}
+
+export interface QuestionnaireResponse {
+  questionId: string;
+  questionText?: string; // For context in logs
+  answerType: 'text' | 'number' | 'scale' | 'multiselect' | 'boolean';
+  answer: string | number | string[] | boolean;
 }
 
 // Outbound: Export roadmap to TwentyFive

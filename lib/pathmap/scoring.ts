@@ -114,7 +114,7 @@ export function calculateCapitalFit(
 
   const p25 = Number(pathCapitalP25);
   const p75 = Number(pathCapitalP75);
-  const midpoint = (p25 + p75) / 2;
+  // Note: midpoint calculation available for future use (e.g., weighted scoring)
 
   // Flexibility multiplier
   const flexMultiplier =

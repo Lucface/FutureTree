@@ -1,9 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { db, schema } from '@/lib/db';
+import { db } from '@/lib/db';
 import { rankPaths } from '@/lib/pathmap/scoring';
 import type { RecommendationResponse } from '@/lib/pathmap/types';
-import { intakeFormSchema } from '@/lib/validations/intake';
+import {
+  intakeFormSchema,
+  INDUSTRIES,
+  COMPANY_SIZES,
+  BUSINESS_STAGES,
+  TIMELINE_PREFERENCES,
+  RISK_TOLERANCES,
+  BUDGET_FLEXIBILITIES,
+} from '@/lib/validations/intake';
+
+type Industry = (typeof INDUSTRIES)[number];
+type CompanySize = (typeof COMPANY_SIZES)[number];
+type BusinessStage = (typeof BUSINESS_STAGES)[number];
+type TimelinePreference = (typeof TIMELINE_PREFERENCES)[number];
+type RiskTolerance = (typeof RISK_TOLERANCES)[number];
+type BudgetFlexibility = (typeof BUDGET_FLEXIBILITIES)[number];
 
 /**
  * Request schema for recommendations
@@ -38,7 +53,7 @@ export async function POST(request: NextRequest) {
 
     const { contextId, context } = validationResult.data;
     let clientContext = context;
-    let resolvedContextId = contextId;
+    const resolvedContextId = contextId;
 
     // If contextId provided, fetch from database
     if (contextId && !context) {
@@ -58,19 +73,19 @@ export async function POST(request: NextRequest) {
 
       // Transform DB context to IntakeFormData format
       clientContext = {
-        industry: dbContext.industry as any || 'other',
+        industry: (dbContext.industry as Industry) || 'other',
         industryOther: undefined,
-        companySize: dbContext.companySize as any || 'solo',
+        companySize: (dbContext.companySize as CompanySize) || 'solo',
         annualRevenue: dbContext.annualRevenue ? Number(dbContext.annualRevenue) : null,
         yearsInBusiness: dbContext.yearsInBusiness,
-        currentStage: dbContext.currentStage as any || 'growth',
+        currentStage: (dbContext.currentStage as BusinessStage) || 'growth',
         primaryGoal: dbContext.primaryGoal || '',
         biggestChallenge: dbContext.biggestChallenge || '',
-        timelinePreference: dbContext.timelinePreference as any || 'moderate',
-        riskTolerance: dbContext.riskTolerance as any || 'moderate',
+        timelinePreference: (dbContext.timelinePreference as TimelinePreference) || 'moderate',
+        riskTolerance: (dbContext.riskTolerance as RiskTolerance) || 'moderate',
         availableCapital: dbContext.availableCapital ? Number(dbContext.availableCapital) : 0,
-        budgetFlexibility: dbContext.budgetFlexibility as any || 'flexible',
-        additionalConstraints: (dbContext.preferences as any)?.additionalConstraints || null,
+        budgetFlexibility: (dbContext.budgetFlexibility as BudgetFlexibility) || 'flexible',
+        additionalConstraints: (dbContext.preferences as Record<string, unknown>)?.additionalConstraints as string || null,
       };
     }
 

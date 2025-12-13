@@ -3,6 +3,7 @@
  */
 
 import { seedPathMap } from './pathmap';
+import { seedJDAPath } from './jda-path';
 
 async function main() {
   console.log('🚀 Starting database seed...\n');
@@ -10,6 +11,9 @@ async function main() {
   try {
     // Seed PathMap data (strategic paths and decision nodes)
     await seedPathMap();
+
+    // Seed JDA-specific AI Adoption path
+    await seedJDAPath();
 
     console.log('\n✅ All seeds completed successfully!');
   } catch (error) {

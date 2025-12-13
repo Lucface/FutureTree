@@ -5,7 +5,6 @@ import {
   Pie,
   Cell,
   ResponsiveContainer,
-  Legend,
   Tooltip,
 } from 'recharts';
 import { Database, Brain, Compass, Rocket } from 'lucide-react';
@@ -44,14 +43,14 @@ export function AttributionBreakdown({
   };
 
   const outcomeData = Object.entries(outcomeDistribution)
-    .filter(([_, value]) => value > 0)
+    .filter(([, value]) => value > 0)
     .map(([name, value]) => ({
       name: name.charAt(0).toUpperCase() + name.slice(1),
       value,
     }));
 
   const attributionData = Object.entries(failureAttribution)
-    .filter(([_, value]) => value > 0)
+    .filter(([, value]) => value > 0)
     .map(([name, value]) => ({
       name: name.charAt(0).toUpperCase() + name.slice(1),
       value,

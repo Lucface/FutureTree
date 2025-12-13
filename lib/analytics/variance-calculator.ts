@@ -2,10 +2,9 @@ import { db } from '@/lib/db';
 import {
   pathOutcomes,
   strategicPaths,
-  decisionNodes,
   outcomeSurveys,
 } from '@/database/schema';
-import { eq, and, isNotNull, count, avg, sql } from 'drizzle-orm';
+import { eq, and, isNotNull, count } from 'drizzle-orm';
 
 /**
  * Variance Analysis for PathMap Learning Loop

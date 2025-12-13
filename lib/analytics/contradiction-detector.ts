@@ -2,9 +2,8 @@ import { db } from '@/lib/db';
 import {
   pathOutcomes,
   strategicPaths,
-  decisionNodes,
 } from '@/database/schema';
-import { eq, and, isNotNull, gte, sql } from 'drizzle-orm';
+import { eq, and, isNotNull } from 'drizzle-orm';
 
 /**
  * Contradiction Detector for PathMap Learning Loop

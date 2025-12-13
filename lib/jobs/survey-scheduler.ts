@@ -2,86 +2,13 @@ import { db } from '@/lib/db';
 import {
   outcomeSurveys,
   pathExplorations,
-  clientContexts,
   type NewOutcomeSurvey,
 } from '@/database/schema';
-import { eq, and, isNull, gte, lte } from 'drizzle-orm';
+import { eq, and, lte } from 'drizzle-orm';
+import { SURVEY_TYPES, type SurveyType } from '@/lib/pathmap/survey-types';
 
-/**
- * Survey Types with their scheduling delays
- */
-export const SURVEY_TYPES = {
-  '30day': {
-    label: '30-Day Check-in',
-    delayDays: 30,
-    description: 'Have you started implementing your chosen path?',
-    questions: [
-      { id: 'hasStarted', type: 'boolean', label: 'Have you started?' },
-      {
-        id: 'progressPercent',
-        type: 'number',
-        label: 'Estimated progress (%)',
-        min: 0,
-        max: 100,
-      },
-      { id: 'additionalNotes', type: 'text', label: 'Any notes?' },
-    ],
-  },
-  '60day': {
-    label: '60-Day Progress',
-    delayDays: 60,
-    description: 'How far along are you in your strategic path?',
-    questions: [
-      {
-        id: 'progressPercent',
-        type: 'number',
-        label: 'Progress (%)',
-        min: 0,
-        max: 100,
-      },
-      {
-        id: 'actualSpend',
-        type: 'currency',
-        label: 'Actual spend so far',
-      },
-      { id: 'additionalNotes', type: 'text', label: 'Challenges faced?' },
-    ],
-  },
-  '90day': {
-    label: '90-Day Outcome',
-    delayDays: 90,
-    description: 'What was the outcome of your strategic path?',
-    questions: [
-      {
-        id: 'outcome',
-        type: 'select',
-        label: 'Outcome',
-        options: [
-          { value: 'success', label: 'Success - achieved goals' },
-          { value: 'partial', label: 'Partial - some goals met' },
-          { value: 'failure', label: 'Did not achieve goals' },
-          { value: 'pivoted', label: 'Pivoted to different approach' },
-          { value: 'abandoned', label: 'Abandoned the path' },
-        ],
-      },
-      {
-        id: 'actualSpend',
-        type: 'currency',
-        label: 'Total spend',
-      },
-      { id: 'lessons', type: 'textarea', label: 'Key lessons learned?' },
-      {
-        id: 'wouldRecommend',
-        type: 'rating',
-        label: 'Would you recommend this path to others?',
-        min: 1,
-        max: 10,
-      },
-    ],
-  },
-} as const;
-
-export type SurveyType = keyof typeof SURVEY_TYPES;
+// Re-export for backward compatibility with existing imports
+export { SURVEY_TYPES, type SurveyType };
 
 /**
  * Schedule all surveys for an exploration
@@ -136,6 +63,7 @@ export async function getSurveysDueForSending(): Promise<
     surveyType: string;
     recipientEmail: string | null;
     scheduledFor: Date;
+    deliveryMethod: string | null;
   }>
 > {
   const now = new Date();
@@ -151,6 +79,7 @@ export async function getSurveysDueForSending(): Promise<
       surveyType: true,
       recipientEmail: true,
       scheduledFor: true,
+      deliveryMethod: true,
     },
   });
 
@@ -159,8 +88,14 @@ export async function getSurveysDueForSending(): Promise<
 
 /**
  * Mark a survey as sent
+ * @param surveyId - The ID of the survey
+ * @param _messageId - Optional email message ID (logged but not stored)
  */
-export async function markSurveyAsSent(surveyId: string): Promise<void> {
+export async function markSurveyAsSent(
+  surveyId: string,
+  _messageId?: string
+): Promise<void> {
+  // Note: messageId is logged by the cron job for debugging but not persisted
   await db
     .update(outcomeSurveys)
     .set({
@@ -294,7 +229,7 @@ export async function expireOldSurveys(): Promise<number> {
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - 30);
 
-  const result = await db
+  await db
     .update(outcomeSurveys)
     .set({ status: 'expired' })
     .where(

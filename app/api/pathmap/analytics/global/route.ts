@@ -6,7 +6,7 @@ import { detectAllContradictions } from '@/lib/analytics/contradiction-detector'
  * GET /api/pathmap/analytics/global
  * Get global variance and contradiction metrics across all paths
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     // Fetch variance and contradictions in parallel
     const [varianceData, contradictionData] = await Promise.all([

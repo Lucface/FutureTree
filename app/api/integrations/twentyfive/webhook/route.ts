@@ -5,8 +5,10 @@ import {
   pathOutcomes,
   pathExplorations,
   twentyfiveConnections,
+  teamQuestionnaireResponses,
+  clientContexts,
 } from '@/database/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import {
   validateSignature,
   parseWebhookHeaders,
@@ -16,6 +18,7 @@ import type {
   PerformanceUpdateData,
   ProjectCompletedData,
   MilestoneReachedData,
+  QuestionnaireResponseData,
 } from '@/lib/integrations/twentyfive/types';
 import { recalculatePath } from '@/lib/jobs/metric-recalculator';
 
@@ -64,7 +67,8 @@ export async function POST(request: NextRequest) {
     });
 
     let signatureValid = false;
-    let matchedConnection: typeof connections[0] | null = null;
+    // Stored for potential future multi-tenant routing
+    let matchedConnectionId: string | null = null;
 
     // Try to validate against any active connection
     for (const connection of connections) {
@@ -76,7 +80,8 @@ export async function POST(request: NextRequest) {
       );
       if (result.valid) {
         signatureValid = true;
-        matchedConnection = connection;
+        matchedConnectionId = connection.id; // For logging/debugging
+        console.log(`Webhook validated for connection: ${matchedConnectionId}`);
         break;
       }
     }
@@ -108,6 +113,13 @@ export async function POST(request: NextRequest) {
       case 'milestone_reached':
         await handleMilestoneReached(
           payload.data as MilestoneReachedData,
+          payload.correlationId
+        );
+        break;
+
+      case 'questionnaire_response':
+        await handleQuestionnaireResponse(
+          payload.data as QuestionnaireResponseData,
           payload.correlationId
         );
         break;
@@ -250,6 +262,64 @@ async function handleMilestoneReached(
 
   // Could update a progress tracking table here
   // For now, we just log it
+}
+
+/**
+ * Handle questionnaire response event (JDA Team Questionnaire)
+ *
+ * Stores team member AI readiness responses from TwentyFive
+ * Enables sentiment analysis, path customization, and progress tracking
+ */
+async function handleQuestionnaireResponse(
+  data: QuestionnaireResponseData,
+  // correlationId available for future logging/tracking
+  _correlationId?: string
+) {
+  void _correlationId;
+  console.log(`Questionnaire response received from ${data.respondentEmail}`);
+
+  // Try to find matching client context by company ID
+  let clientContextId: string | null = null;
+  if (data.companyId) {
+    // Look up by session ID pattern (e.g., 'jda-main')
+    const context = await db.query.clientContexts.findFirst({
+      where: eq(clientContexts.sessionId, data.companyId),
+    });
+    if (context) {
+      clientContextId = context.id;
+    }
+  }
+
+  // Store the questionnaire response
+  await db.insert(teamQuestionnaireResponses).values({
+    respondentId: data.respondentId,
+    respondentEmail: data.respondentEmail,
+    respondentName: data.respondentName,
+    respondentRole: data.respondentRole,
+    clientContextId,
+    companyId: data.companyId,
+    questionnaireVersion: data.questionnaireVersion,
+    responses: data.responses,
+    aiReadinessScore: data.scores?.aiReadinessScore,
+    sentimentCategory: data.scores?.sentimentCategory,
+    adoptionBarriers: data.scores?.adoptionBarriers,
+    highValueOpportunities: data.scores?.highValueOpportunities,
+    submittedAt: new Date(data.submittedAt),
+  });
+
+  console.log(`✓ Stored questionnaire response for ${data.respondentEmail} (${data.respondentRole})`);
+
+  // Log summary for monitoring
+  if (data.scores) {
+    console.log(`  AI Readiness Score: ${data.scores.aiReadinessScore}`);
+    console.log(`  Sentiment: ${data.scores.sentimentCategory}`);
+    if (data.scores.adoptionBarriers?.length) {
+      console.log(`  Barriers: ${data.scores.adoptionBarriers.join(', ')}`);
+    }
+    if (data.scores.highValueOpportunities?.length) {
+      console.log(`  Opportunities: ${data.scores.highValueOpportunities.join(', ')}`);
+    }
+  }
 }
 
 /**

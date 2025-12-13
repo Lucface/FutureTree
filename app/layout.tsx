@@ -1,12 +1,11 @@
 import React from 'react';
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
 import { ThemeProvider } from 'next-themes';
 import { PostHogProvider } from '../components/PostHogProvider';
 import { SmoothScrollProvider } from '@/components/providers/smooth-scroll-provider';
+import { QueryProvider } from '@/components/providers/query-provider';
+import { SkipLink } from '@/components/accessibility';
 import './globals.css';
-
-const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'FutureTree - Strategic Intelligence Platform',
@@ -17,11 +16,37 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
+      <head>
+        {/* Preconnect for faster font loading */}
+        <link rel="preconnect" href="https://api.fontshare.com" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://cdn.fontshare.com" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+
+        {/* Fontshare: Clash Display (headlines) + Satoshi (body) */}
+        <link
+          href="https://api.fontshare.com/v2/css?f[]=clash-display@400,500,600,700&f[]=satoshi@400,500,600,700&display=swap"
+          rel="stylesheet"
+        />
+
+        {/* Google Fonts: JetBrains Mono (code, metrics) */}
+        <link
+          href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body className="font-sans antialiased">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          <PostHogProvider>
-            <SmoothScrollProvider>{children}</SmoothScrollProvider>
-          </PostHogProvider>
+          <QueryProvider>
+            <PostHogProvider>
+              <SmoothScrollProvider>
+                <SkipLink />
+                <main id="main-content" className="min-h-screen">
+                  {children}
+                </main>
+              </SmoothScrollProvider>
+            </PostHogProvider>
+          </QueryProvider>
         </ThemeProvider>
       </body>
     </html>

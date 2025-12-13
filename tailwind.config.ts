@@ -1,7 +1,7 @@
 import type { Config } from "tailwindcss";
 
 const config = {
-  darkMode: "class",
+  darkMode: ["class"],
   content: [
     "./pages/**/*.{ts,tsx}",
     "./components/**/*.{ts,tsx}",
@@ -51,39 +51,41 @@ const config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        // FutureTree Premium Design Tokens
         // Strategic path colors
         path: {
-          vertical: "#10B981",    // Green - Vertical Specialization
-          content: "#3B82F6",     // Blue - Content-Led Growth
-          partnership: "#8B5CF6", // Purple - Partnership Model
+          vertical: "#10B981",
+          content: "#3B82F6",
+          partnership: "#8B5CF6",
         },
-        // Dark mode warm charcoal (NOT pure black)
-        dark: {
-          background: "#0F0F0F",  // Warm charcoal background
-          surface: "#171717",     // Card/surface backgrounds
-          elevated: "#1F1F1F",    // Elevated surfaces
-          border: "#2A2A2A",      // Subtle borders
-          muted: "#404040",       // Muted text
+        // Chart colors
+        chart: {
+          1: "hsl(var(--chart-1))",
+          2: "hsl(var(--chart-2))",
+          3: "hsl(var(--chart-3))",
+          4: "hsl(var(--chart-4))",
+          5: "hsl(var(--chart-5))",
         },
-        // Success/probability colors
-        success: {
-          light: "#D1FAE5",
-          DEFAULT: "#10B981",
-          dark: "#047857",
+        // Sidebar
+        sidebar: {
+          DEFAULT: "hsl(var(--sidebar-background))",
+          foreground: "hsl(var(--sidebar-foreground))",
+          primary: "hsl(var(--sidebar-primary))",
+          "primary-foreground": "hsl(var(--sidebar-primary-foreground))",
+          accent: "hsl(var(--sidebar-accent))",
+          "accent-foreground": "hsl(var(--sidebar-accent-foreground))",
+          border: "hsl(var(--sidebar-border))",
+          ring: "hsl(var(--sidebar-ring))",
         },
       },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
-        "2xl": "1rem",
-        "3xl": "1.5rem",
       },
       fontFamily: {
-        sans: ["var(--font-inter)", "Inter", "system-ui", "sans-serif"],
-        display: ["var(--font-inter)", "Inter", "system-ui", "sans-serif"],
-        mono: ["JetBrains Mono", "monospace"],
+        sans: ["Satoshi", "var(--font-sans)", "system-ui", "sans-serif"],
+        display: ["Clash Display", "var(--font-display)", "system-ui", "sans-serif"],
+        mono: ["JetBrains Mono", "var(--font-mono)", "ui-monospace", "monospace"],
       },
       keyframes: {
         "accordion-down": {
@@ -114,10 +116,6 @@ const config = {
           "0%": { transform: "translateX(-100%)" },
           "100%": { transform: "translateX(100%)" },
         },
-        pulse: {
-          "0%, 100%": { opacity: "1" },
-          "50%": { opacity: "0.5" },
-        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -127,18 +125,16 @@ const config = {
         "slide-down": "slide-down 0.5s ease-out",
         "scale-in": "scale-in 0.3s ease-out",
         shimmer: "shimmer 2s infinite",
-        pulse: "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
       },
       boxShadow: {
-        // Premium button shadows
         "premium-sm": "0 1px 2px rgba(0, 0, 0, 0.05)",
-        "premium": "0 1px 3px rgba(0, 0, 0, 0.1), 0 4px 12px rgba(0, 0, 0, 0.15)",
+        premium: "0 1px 3px rgba(0, 0, 0, 0.1), 0 4px 12px rgba(0, 0, 0, 0.15)",
         "premium-lg": "0 2px 6px rgba(0, 0, 0, 0.15), 0 8px 24px rgba(0, 0, 0, 0.2)",
-        // Card shadows
         "card-hover": "0 10px 40px rgba(0, 0, 0, 0.1)",
       },
     },
   },
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   plugins: [require("tailwindcss-animate")],
 } satisfies Config;
 

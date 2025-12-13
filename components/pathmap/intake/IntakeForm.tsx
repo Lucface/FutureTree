@@ -225,7 +225,11 @@ export function IntakeForm({ onComplete }: IntakeFormProps) {
 
         {/* Error Message */}
         {error && (
-          <div className="p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-lg">
+          <div
+            role="alert"
+            aria-live="polite"
+            className="p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-lg"
+          >
             <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
           </div>
         )}

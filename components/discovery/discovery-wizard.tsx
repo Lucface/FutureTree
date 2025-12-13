@@ -45,9 +45,11 @@ export function DiscoveryWizard({
   onComplete,
   onStepChange,
   formData,
-  setFormData,
+  setFormData: _setFormData,
   isSubmitting = false,
 }: DiscoveryWizardProps) {
+  // _setFormData available for step components to update data
+  void _setFormData;
   const [currentStep, setCurrentStep] = useState(0);
   const [direction, setDirection] = useState(0); // -1 for back, 1 for forward
 

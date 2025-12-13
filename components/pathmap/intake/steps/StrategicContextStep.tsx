@@ -5,9 +5,7 @@ import {
   BUSINESS_STAGES,
   BUSINESS_STAGE_LABELS,
   TIMELINE_PREFERENCES,
-  TIMELINE_LABELS,
   RISK_TOLERANCES,
-  RISK_TOLERANCE_LABELS,
   type IntakeFormData,
 } from '@/lib/validations/intake';
 

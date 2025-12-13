@@ -80,7 +80,7 @@ export function validateSignature(
     }
 
     return { valid: true };
-  } catch (error) {
+  } catch {
     return {
       valid: false,
       error: 'Signature validation failed',

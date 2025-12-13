@@ -10,10 +10,8 @@ import {
   AlertCircle,
   Clock,
   DollarSign,
-  Star,
-  MessageSquare,
 } from 'lucide-react';
-import { SURVEY_TYPES, type SurveyType } from '@/lib/jobs/survey-scheduler';
+import { SURVEY_TYPES, type SurveyType } from '@/lib/pathmap/survey-types';
 
 interface OutcomeSurveyModalProps {
   open: boolean;
